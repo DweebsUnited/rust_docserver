@@ -1,0 +1,13 @@
+{% extends "base.tmpl" %}
+
+{% block title %}Tag List{% endblock %}
+
+{% block content %}
+<ul class="list-group">
+{% for t in taglist %}
+<li class="list-group-item">
+<h5 style="display: inline;">{{ t.name }}</h5> <button type="button" class="btn">Rename</button><button type="button" class="btn btn-danger">Delete</button>
+</li>
+{% endfor %}
+</ul>
+{% endblock %}

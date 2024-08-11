@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Document List</title>
+<title>{% block title %}Base Page{% endblock %}</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/static/css/bootstrap.min.css">
 </head>
 <body>
 {% include "nav.tmpl" %}
+{% block content %}
+Hello World!
+{% endblock %}
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

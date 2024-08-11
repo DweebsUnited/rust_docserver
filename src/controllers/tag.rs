@@ -3,6 +3,16 @@ use sqlx::SqlitePool;
 use crate::models;
 use crate::errors::AppError;
 
+async fn raw_get_all(pool: &SqlitePool) -> Result<Vec<models::Tag>, sqlx::Error> {
+
+    let sql = String::from("SELECT * FROM tags");
+
+    sqlx::query_as::<_,models::Tag>(&sql)
+        .fetch_all(pool)
+        .await
+
+}
+
 async fn raw_get_all_for_doc(pool: &SqlitePool, id: i32) -> Result<Vec<models::Tag>, sqlx::Error> {
 
     let sql = String::from("SELECT * FROM tags WHERE id IN (SELECT idtag FROM doctags WHERE iddoc = ?)");
@@ -44,10 +54,7 @@ pub async fn get_for_docid(pool: &SqlitePool, id: i32)
     -> Result<Vec<models::Tag>, AppError> {
 
     let tags = raw_get_all_for_doc(pool, id)
-        .await
-        .map_err(|err| {
-            AppError::InternalServerError(err.to_string())
-        })?;
+        .await?;
 
     Ok(tags)
 }
@@ -56,10 +63,16 @@ pub async fn set_for_docid(pool: &SqlitePool, id: i32, tags: &Vec<i32>)
     -> Result<(), AppError> {
 
     raw_set_for_docid(pool, id, tags)
-        .await
-        .map_err(|err| {
-            AppError::InternalServerError(err.to_string())
-        })?;
+        .await?;
 
     Ok(())
+}
+
+pub async fn get_all_tags(pool: &SqlitePool)
+    -> Result<Vec<models::Tag>, AppError> {
+
+    let tags = raw_get_all(&pool)
+        .await?;
+
+    Ok(tags)
 }

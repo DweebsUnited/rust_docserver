@@ -3,6 +3,16 @@ use sqlx::SqlitePool;
 use crate::models;
 use crate::errors::AppError;
 
+async fn raw_get_all(pool: &SqlitePool) -> Result<Vec<models::Person>, sqlx::Error> {
+
+    let sql = String::from("SELECT * FROM people");
+
+    sqlx::query_as::<_,models::Person>(&sql)
+        .fetch_all(pool)
+        .await
+
+}
+
 async fn raw_get_all_for_doc(pool: &SqlitePool, id: i32) -> Result<Vec<models::Person>, sqlx::Error> {
 
     let sql = String::from("SELECT * FROM people WHERE id IN (SELECT idperson FROM docpeople WHERE iddoc = ?)");
@@ -44,10 +54,7 @@ pub async fn get_for_docid(pool: &SqlitePool, id: i32)
     -> Result<Vec<models::Person>, AppError> {
 
     let people = raw_get_all_for_doc(pool, id)
-        .await
-        .map_err(|err| {
-            AppError::InternalServerError(err.to_string())
-        })?;
+        .await?;
 
     Ok(people)
 }
@@ -56,10 +63,16 @@ pub async fn set_for_docid(pool: &SqlitePool, id: i32, people: &Vec<i32>)
     -> Result<(), AppError> {
 
     raw_set_for_docid(pool, id, people)
-        .await
-        .map_err(|err| {
-            AppError::InternalServerError(err.to_string())
-        })?;
+        .await?;
 
     Ok(())
+}
+
+pub async fn get_all_people(pool: &SqlitePool)
+    -> Result<Vec<models::Person>, AppError> {
+
+    let people = raw_get_all(&pool)
+        .await?;
+
+    Ok(people)
 }
