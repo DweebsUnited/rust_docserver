@@ -14,6 +14,7 @@ async fn index() -> String {
 mod models;
 mod controllers;
 mod api;
+mod views;
 mod errors;
 
 mod timeutil;
@@ -53,6 +54,7 @@ async fn main() {
 
     let app = axum::Router::new()
         .route("/", axum::routing::get(index))
+        .route("/docs", axum::routing::get(views::doc::get_all_docs))
         .nest_service("/static", ServeDir::new("resources/static"))
         .nest("/api", api)
         .layer(Extension(pool))

@@ -28,3 +28,18 @@ impl IntoResponse for AppError {
 pub async fn not_found() -> AppError {
     AppError::InternalServerError(String::new())
 }
+
+impl From<sqlx::Error> for AppError {
+    fn from(value: sqlx::Error) -> Self {
+        match value {
+            sqlx::Error::RowNotFound => Self::NotFound(String::from("Not Found")),
+            _ => AppError::InternalServerError(value.to_string()),
+        }
+    }
+}
+
+impl From<minijinja::Error> for AppError {
+    fn from(value: minijinja::Error) -> Self {
+        Self::InternalServerError(String::from("Minijinja error: ") + &value.to_string())
+    }
+}

@@ -66,9 +66,10 @@ async fn fill_doc(pool: &SqlitePool, doc: models::DocDB) -> Result<models::Doc, 
     let doc_types = controllers::r#type::get_for_docid(pool, doc.id);
     let doc_people = controllers::person::get_for_docid(pool, doc.id);
 
-    let doc_tags = doc_tags.await?;
-    let doc_types = doc_types.await?;
-    let doc_people = doc_people.await?;
+    let (doc_tags, doc_types, doc_people) = tokio::join!(doc_tags, doc_types, doc_people);
+    let doc_tags = doc_tags?;
+    let doc_types = doc_types?;
+    let doc_people = doc_people?;
 
     Ok(models::Doc {
         id: doc.id,
@@ -88,10 +89,7 @@ pub async fn get_all_docs(pool: &SqlitePool)
     -> Result<Vec<models::Doc>, AppError> {
 
     let dbdocs = raw_get_all_docs(&pool)
-        .await
-        .map_err(|err| {
-            AppError::InternalServerError(err.to_string())
-        })?;
+        .await?;
 
     let mut docs = Vec::<models::Doc>::new();
 
@@ -107,13 +105,7 @@ pub async fn get_doc(pool: &SqlitePool, id: i32)
     -> Result<models::Doc, AppError> {
 
     let doc = raw_get_doc(pool, id)
-        .await
-        .map_err(|err| {
-            match err {
-                sqlx::Error::RowNotFound => AppError::NotFound(format!("ID ({}) not found", id)),
-                _ => AppError::InternalServerError(err.to_string()),
-            }
-        })?;
+        .await?;
 
     let doc = fill_doc(pool, doc)
         .await?;
@@ -127,17 +119,17 @@ pub async fn post_doc(pool: &SqlitePool, doc: models::DocAPI)
     // TODO: THIS NEEDS TO USE A TRANSACTION THE WHOLE WAY THROUGH
 
     let docdb = raw_insert_doc(pool, &doc)
-        .await
-        .map_err(|err| {
-            AppError::InternalServerError(err.to_string())
-        })?;
+        .await?;
 
     let tag_update = controllers::tag::set_for_docid(pool, docdb.id, &doc.tags);
     let type_update = controllers::r#type::set_for_docid(pool, docdb.id, &doc.types);
     let person_update = controllers::person::set_for_docid(pool, docdb.id, &doc.people);
-    tag_update.await?;
-    type_update.await?;
-    person_update.await?;
+
+    let (tag_update, type_update, person_update) = tokio::join!(tag_update, type_update, person_update);
+
+    tag_update?;
+    type_update?;
+    person_update?;
 
     let doc = fill_doc(pool, docdb)
         .await?;
@@ -152,17 +144,17 @@ pub async fn put_doc(pool: &SqlitePool, doc: models::DocAPI)
     // TODO: THIS NEEDS TO USE A TRANSACTION THE WHOLE WAY THROUGH
 
     let docdb = raw_update_doc(&pool, &doc)
-        .await
-        .map_err(|err| {
-            AppError::InternalServerError(err.to_string())
-        })?;
+        .await?;
 
-    let tag_update = controllers::tag::set_for_docid(pool, docdb.id, &doc.tags);
-    let type_update = controllers::r#type::set_for_docid(pool, docdb.id, &doc.types);
-    let person_update = controllers::person::set_for_docid(pool, docdb.id, &doc.people);
-    tag_update.await?;
-    type_update.await?;
-    person_update.await?;
+        let tag_update = controllers::tag::set_for_docid(pool, docdb.id, &doc.tags);
+        let type_update = controllers::r#type::set_for_docid(pool, docdb.id, &doc.types);
+        let person_update = controllers::person::set_for_docid(pool, docdb.id, &doc.people);
+
+        let (tag_update, type_update, person_update) = tokio::join!(tag_update, type_update, person_update);
+
+        tag_update?;
+        type_update?;
+        person_update?;
 
     let doc = fill_doc(pool, docdb)
         .await?;
